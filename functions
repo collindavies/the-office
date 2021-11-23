@@ -88,3 +88,125 @@ FROM employee
 UNION
 SELECT total_sales
 FROM works_with;
+
+-- Joins
+INSERT INTO branch VALUES(4, 'Buffalo', NULL, NULL);
+
+SELECT *
+FROM branch;
+
+UPDATE branch
+SET mgr_id = 106
+WHERE branch_name = 'Stamford';
+
+-- Task: Find all branches and the names of their managers (inner join ... shared column in common)
+SELECT employee.emp_id, employee.first_name, employee.last_name, branch.branch_name
+FROM employee
+JOIN branch
+ON employee.emp_id = branch.mgr_id;
+
+-- Task: Find all branches and the names of their managers (left join ... include all of the rows from the left table (specified in FROM statement))
+SELECT employee.emp_id, employee.first_name, employee.last_name, branch.branch_name
+FROM employee
+LEFT JOIN branch
+ON employee.emp_id = branch.mgr_id;
+
+-- Task: Find all branches and the names of their managers (right join ... include all of the rows from the right table (specified in JOIN statement))
+SELECT employee.emp_id, employee.first_name, employee.last_name, branch.branch_name
+FROM employee
+RIGHT JOIN branch
+ON employee.emp_id = branch.mgr_id;
+
+-- Nested Queries (multiple SELECT statements)
+-- Task: Find names of all employees who have sold over $30,000 to a single client
+SELECT employee.first_name, employee.last_name
+FROM employee
+WHERE employee.emp_id IN (
+    SELECT works_with.emp_id
+    FROM works_with
+    WHERE works_with.total_sales > 30000    
+);
+
+-- Task: Find all clients who are handled by the branch that Michael Scott manages. Assume you know Michael's ID.
+SELECT client.client_name
+FROM client
+WHERE client.branch_id = (
+    SELECT branch.branch_id
+    FROM branch
+    WHERE branch.mgr_id = 102
+    LIMIT 1
+);
+
+-- ON DELETE (deleting entries when associated with foreign keys)
+-- ON DELETE SET NULL = set variable to NULL if it is deleted; mgr_id is only a foreign key, not a primary key.
+DELETE FROM employee
+WHERE emp_id = 102;
+
+SELECT * FROM branch;
+SELECT * FROM employee;
+
+-- ON DELETE CASCADE = delete entire row if a variable is deleted; branch_id is a foreign and primary key.
+DELETE FROM branch
+WHERE branch_id = 2;
+
+SELECT * FROM branch;
+SELECT * FROM branch_supplier;
+
+-- Triggers
+CREATE TABLE trigger_test (
+    message VARCHAR(100)
+);
+
+
+-- Copy code into Select MySQL 5.7 Command Line Client
+USE giraffe
+DELIMITER $$
+CREATE
+    TRIGGER my_trigger BEFORE INSERT
+    ON employee
+    FOR EACH ROW BEGIN
+        INSERT INTO trigger_test VALUES ('added new employee');
+    END $$
+DELIMITER ;
+
+-- Test Trigger
+INSERT INTO employee
+VALUES (109, 'Oscar', 'Martinez', '1968-02-19', 'M', 69000, 106, 3);
+
+SELECT * FROM trigger_test;
+
+DELIMITER $$
+CREATE
+    TRIGGER my_trigger1 BEFORE INSERT
+    ON employee
+    FOR EACH ROW BEGIN
+        INSERT INTO trigger_test VALUES (NEW.first_name);
+    END $$
+DELIMITER ;
+
+INSERT INTO employee
+VALUES(110, 'Kevin', 'Malone', '1978-02-19', 'M', 69000, 106, 3);
+
+SELECT * FROM trigger_test;
+
+DELIMITER $$
+CREATE
+    TRIGGER my_trigger2 BEFORE INSERT
+    ON employee
+    FOR EACH ROW BEGIN
+        IF NEW.sex = 'M' THEN
+                INSERT INTO trigger_test VALUES ('added male employee');
+        ELSEIF NEW.sex = 'F' THEN
+                INSERT INTO trigger_test VALUES('added female employee');
+        ELSE
+                INSERT INTO trigger_test VALUES('added other employee');
+        END IF;
+    END $$
+DELIMITER ; 
+
+INSERT INTO employee
+VALUES(111, 'Pam', 'Beesly', '1989-02-19', 'F', 6900, 106, 3);
+
+SELECT * FROM trigger_test;
+
+DROP TRIGGER my_trigger;
